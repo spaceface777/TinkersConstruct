@@ -62,6 +62,9 @@ import slimeknights.tconstruct.library.tools.Shard;
 import slimeknights.tconstruct.library.tools.ToolCore;
 import slimeknights.tconstruct.library.traits.ITrait;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+
 public final class TinkerRegistry {
 
   // the logger for the library
@@ -562,14 +565,20 @@ public final class TinkerRegistry {
     }
   }
 
-  public static MeltingRecipe getMelting(ItemStack stack) {
-    for(MeltingRecipe recipe : meltingRegistry) {
-      if(recipe.matches(stack)) {
-        return recipe;
-      }
-    }
+  private static LoadingCache<ItemStack, MeltingRecipe> meltingCache = Caffeine.newBuilder()
+        .maximumSize(100000)
+        .build(stack -> {
+          for (MeltingRecipe recipe : meltingRegistry) {
+            if (recipe.matches(stack)) {
+              return recipe;
+            }
+          }
 
-    return null;
+          return null;
+        });
+
+  public static MeltingRecipe getMelting(ItemStack stack) {
+    return meltingCache.get(stack);
   }
 
   public static List<MeltingRecipe> getAllMeltingRecipies() {
